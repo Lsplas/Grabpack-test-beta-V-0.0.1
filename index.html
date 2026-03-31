@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poppy Mechanics Arena - V2.0 (Particles, Grapples, Gates)</title>
+    <title>Poppy Mechanics Arena - V3.0 (Massive Map & Purple Hand)</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #add8e6; }
         #ui {
@@ -19,7 +19,7 @@
             pointer-events: none; border: 2px solid rgba(0,0,0,0.5); z-index: 5;
         }
         #blocker {
-            position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
+            position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: white; cursor: pointer; z-index: 10; text-align: center;
         }
@@ -29,13 +29,16 @@
 <body>
 
     <div id="blocker">
-        <h1 style="font-size: 48px; margin-bottom: 10px; text-shadow: 2px 2px 0 #ff0000;">POPPY MECHANICS ARENA</h1>
+        <h1 style="font-size: 48px; margin-bottom: 10px; text-shadow: 2px 2px 0 #ff0000;">POPPY MECHANICS: V3.0</h1>
         <p style="font-size: 20px;">Use <span class="key">W A S D</span> to Move | <span class="key">SPACE</span> to Jump | Mouse to Look</p>
-        <p style="font-size: 20px; color: #ff4444;">Switch Hand: <span class="key">1</span> Red (Pull to Green Cubes)</p>
-        <p style="font-size: 20px; color: #4488ff;">Switch Hand: <span class="key">2</span> Pressure (Break Blue Glass with Shards)</p>
-        <p style="font-size: 20px; color: #ffcc00;">Switch Hand: <span class="key">3</span> Conductive (Power Yellow Gate)</p>
-        <p style="font-size: 20px; color: white;">Left Click to Activate Right Hand!</p>
-        <p style="font-size: 22px; margin-top: 20px; color: #55ff55;">CLICK ANYWHERE TO PLAY</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0;">
+            <p style="font-size: 18px; color: #ff4444; margin: 5px;">Right Hand <span class="key">1</span> : Red (Grapple Green Cubes)</p>
+            <p style="font-size: 18px; color: #c0c0c0; margin: 5px;">Right Hand <span class="key">2</span> : Silver Pressure (Break Blue Glass)</p>
+            <p style="font-size: 18px; color: #ffcc00; margin: 5px;">Right Hand <span class="key">3</span> : Conductive (Power Yellow Gate)</p>
+            <p style="font-size: 18px; color: #cc44ff; margin: 5px;">Right Hand <span class="key">4</span> : Purple (Launch from Purple Pads)</p>
+        </div>
+        <p style="font-size: 20px; color: white;">Left Click to Fire Right Hand!</p>
+        <p style="font-size: 22px; margin-top: 10px; color: #55ff55;">CLICK TO ENTER HUGE ARENA</p>
     </div>
 
     <div id="ui">
@@ -58,11 +61,11 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- 1. SCENE SETUP (Shadows & Bright Atmosphere) ---
+        // --- 1. SCENE SETUP ---
         const scene = new THREE.Scene();
-        const skyColor = new THREE.Color(0xadd8e6); // FIX: Light Blue Sky
+        const skyColor = new THREE.Color(0xadd8e6); 
         scene.background = skyColor;
-        scene.fog = new THREE.Fog(skyColor, 20, 100);
+        scene.fog = new THREE.Fog(skyColor, 50, 250); // Pushed fog way back for huge map
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.y = 2;
@@ -73,93 +76,95 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // --- 2. LIGHTING (Brighter for Daylight) ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // FIX: Boosted Ambient
+        // --- 2. LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); // Sunlight
-        dirLight.position.set(20, 40, 20);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); 
+        dirLight.position.set(50, 100, 50);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.top = 40;
-        dirLight.shadow.camera.bottom = -40;
-        dirLight.shadow.camera.left = -40;
-        dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 150;
+        dirLight.shadow.camera.bottom = -150;
+        dirLight.shadow.camera.left = -150;
+        dirLight.shadow.camera.right = 150;
         scene.add(dirLight);
 
-        // --- 3. ENVIRONMENT (Facility Grid, Glass, Grapple Points, Gates) ---
+        // --- 3. MASSIVE ENVIRONMENT ---
         const glassBlocks = [];
         const grapplePoints = [];
         const gateObjects = [];
+        const jumpPads = [];
 
         function createFacility() {
-            // Solid Floor
-            const floorGeo = new THREE.PlaneGeometry(120, 120);
+            // HUGE Floor
+            const floorGeo = new THREE.PlaneGeometry(500, 500);
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Facility Grid
-            const gridHelper = new THREE.GridHelper(120, 60, 0x111111, 0x444444);
+            // HUGE Grid
+            const gridHelper = new THREE.GridHelper(500, 100, 0x111111, 0x444444);
             gridHelper.position.y = 0.02;
             scene.add(gridHelper);
 
-            // Spawn 8 Blue Glass Blocks (Pressure Hand)
-            const glassGeo = new THREE.BoxGeometry(2, 4, 2);
-            const glassMat = new THREE.MeshStandardMaterial({ 
-                color: 0x44aaff, transparent: true, opacity: 0.6, roughness: 0.1, metalness: 0.5 
-            });
-            for (let i = 0; i < 8; i++) {
+            // Spawn 25 Blue Glass Blocks (Spread out)
+            const glassGeo = new THREE.BoxGeometry(3, 5, 3);
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, transparent: true, opacity: 0.6, metalness: 0.5 });
+            for (let i = 0; i < 25; i++) {
                 const glass = new THREE.Mesh(glassGeo, glassMat);
-                glass.position.set((Math.random() - 0.5) * 60, 2, (Math.random() - 0.5) * -60 - 10);
+                glass.position.set((Math.random() - 0.5) * 300, 2.5, (Math.random() - 0.5) * -300 - 20);
                 glass.castShadow = true;
                 glass.userData = { isGlass: true }; 
                 scene.add(glass);
                 glassBlocks.push(glass);
             }
 
-            // Spawn 5 Green Grapple Cubes (Red Hand)
-            const grappleGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-            const grappleMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x002200, roughness: 1 });
-            for (let i = 0; i < 5; i++) {
+            // Spawn 15 Green Grapple Cubes (Floating high)
+            const grappleGeo = new THREE.BoxGeometry(2, 2, 2);
+            const grappleMat = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x003300 });
+            for (let i = 0; i < 15; i++) {
                 const grapple = new THREE.Mesh(grappleGeo, grappleMat.clone());
-                grapple.position.set((Math.random() - 0.5) * 60, 7, (Math.random() - 0.5) * -60 - 15);
+                grapple.position.set((Math.random() - 0.5) * 200, Math.random() * 10 + 10, (Math.random() - 0.5) * -200 - 20);
                 grapple.castShadow = true;
                 grapple.userData = { isGrapplePoint: true };
                 scene.add(grapple);
                 grapplePoints.push(grapple);
             }
 
-            // The Conductive Gate (Conductive Hand)
-            // Main Gate Frame
-            const gateFrameMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
-            const p1 = new THREE.Mesh(new THREE.BoxGeometry(1, 12, 1), gateFrameMat);
-            p1.position.set(-5, 6, -30); scene.add(p1);
-            const p2 = new THREE.Mesh(new THREE.BoxGeometry(1, 12, 1), gateFrameMat);
-            p2.position.set(5, 6, -30); scene.add(p2);
-            const p3 = new THREE.Mesh(new THREE.BoxGeometry(11, 1, 1), gateFrameMat);
-            p3.position.set(0, 11.5, -30); scene.add(p3);
+            // Spawn 10 Purple Jump Pads
+            const padGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+            const padMat = new THREE.MeshStandardMaterial({ color: 0x800080, emissive: 0x330033 });
+            for (let i = 0; i < 10; i++) {
+                const pad = new THREE.Mesh(padGeo, padMat);
+                pad.position.set((Math.random() - 0.5) * 200, 0.25, (Math.random() - 0.5) * -200 - 20);
+                pad.userData = { isJumpPad: true };
+                scene.add(pad);
+                jumpPads.push(pad);
+            }
 
-            // The Sliding Door (Yellow/Black)
-            const doorGeo = new THREE.BoxGeometry(9, 11, 0.5);
+            // Conductive Gate
+            const gateFrameMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(2, 16, 2), gateFrameMat); p1.position.set(-8, 8, -40); scene.add(p1);
+            const p2 = new THREE.Mesh(new THREE.BoxGeometry(2, 16, 2), gateFrameMat); p2.position.set(8, 8, -40); scene.add(p2);
+            const p3 = new THREE.Mesh(new THREE.BoxGeometry(18, 2, 2), gateFrameMat); p3.position.set(0, 17, -40); scene.add(p3);
+
+            const doorGeo = new THREE.BoxGeometry(14, 15, 0.5);
             const doorMat = new THREE.MeshStandardMaterial({ color: 0xccff00, metalness: 0.3, emissive: 0x221100 });
             const doorMesh = new THREE.Mesh(doorGeo, doorMat);
-            doorMesh.position.set(0, 5.5, -30);
-            scene.add(doorMesh);
+            doorMesh.position.set(0, 7.5, -40); scene.add(doorMesh);
 
-            // The Power Receptor (Small yellow block at base)
-            const receptorGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const receptorGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
             const receptorMat = new THREE.MeshStandardMaterial({ color: 0xdddd00, emissive: 0x222200 });
             const receptor = new THREE.Mesh(receptorGeo, receptorMat);
-            receptor.position.set(5, 0.8, -29);
-            scene.add(receptor);
+            receptor.position.set(8, 1, -38); scene.add(receptor);
 
-            gateObjects.push({ door: doorMesh, receptor: receptor, isOpen: false, yTarget: 16 });
+            gateObjects.push({ door: doorMesh, receptor: receptor, isOpen: false, yTarget: 22 });
         }
         createFacility();
 
-        // --- 4. FIRST PERSON CONTROLS & PHYSICS ---
+        // --- 4. CONTROLS & PHYSICS ---
         const controls = new PointerLockControls(camera, document.body);
         const blocker = document.getElementById('blocker');
 
@@ -168,9 +173,9 @@
         controls.addEventListener('unlock', () => blocker.style.display = 'flex');
 
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = false;
-        let isGrappling = false, grappleTargetPos = new THREE.Vector3(); // FIX: Grappling State
+        let isGrappling = false, grappleTargetPos = new THREE.Vector3(); 
         const velocity = new THREE.Vector3(), direction = new THREE.Vector3();
-        const runSpeed = 60.0, pullSpeed = 80.0; // FIX: Red Hand pull speed
+        const runSpeed = 100.0, pullSpeed = 120.0; // Faster for bigger map
 
         document.addEventListener('keydown', (e) => {
             switch (e.code) {
@@ -178,7 +183,7 @@
                 case 'KeyA': moveLeft = true; break;
                 case 'KeyS': moveBackward = true; break;
                 case 'KeyD': moveRight = true; break;
-                case 'Space': if (canJump) { velocity.y = 35; canJump = false; } break;
+                case 'Space': if (canJump) { velocity.y = 40; canJump = false; } break;
             }
         });
         document.addEventListener('keyup', (e) => {
@@ -190,124 +195,148 @@
             }
         });
 
-        // --- 5. GRABPACK MECHANICS (Updated Visuals & New Mechanics) ---
+        // --- 5. DETAILED ACTUAL HANDS (With Clock & Cables) ---
         let currentHand = 'Red'; 
         const handStatusUI = document.getElementById('handStatus');
         const activeGlassParticles = [];
 
-        // Updated Visual Hand Models with Cables
-        function createHandGroup(colorHex) {
+        function createActualHand(colorHex, isLeft = false, isPressure = false) {
             const group = new THREE.Group();
+            const handMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.4, metalness: isPressure ? 0.8 : 0.2 });
             
-            // Hand Part
-            const handGeo = new THREE.BoxGeometry(0.3, 0.3, 0.6);
-            const handMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.3 });
-            const handMesh = new THREE.Mesh(handGeo, handMat);
-            handMesh.position.set(0, 0, 0);
-            handMesh.castShadow = true;
-            group.add(handMesh);
+            // The Palm
+            const palm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.3), handMat);
+            group.add(palm);
 
-            // Cable Part (Thick Black Tube)
-            const cableGeo = new THREE.CylinderGeometry(0.08, 0.08, 3, 8);
-            const cableMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a }); // Dead black
-            const cableMesh = new THREE.Mesh(cableGeo, cableMat);
-            cableMesh.rotation.x = Math.PI / 2; // Lie flat
-            cableMesh.position.set(0, 0, 1.8); // Extend backward
-            group.add(cableMesh);
+            // Three Fingers
+            for(let i=0; i<3; i++) {
+                const finger = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.2), handMat);
+                finger.position.set(-0.08 + (i * 0.08), 0, -0.2);
+                group.add(finger);
+            }
+
+            // Thumb
+            const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.15), handMat);
+            thumb.position.set(isLeft ? 0.15 : -0.15, 0, -0.05);
+            thumb.rotation.y = isLeft ? -0.5 : 0.5;
+            group.add(thumb);
+
+            // MASSIVE CABLE
+            const cableMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
+            const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 20, 8), cableMat); // 20 units long!
+            cable.rotation.x = Math.PI / 2;
+            cable.position.set(0, 0, 10); // Extends way past the camera
+            group.add(cable);
+
+            // The Clock for the Pressure Hand
+            if (isPressure) {
+                // White Clock Face
+                const clockFace = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.11, 16), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                clockFace.position.set(0, 0, 0); // Center of palm
+                group.add(clockFace);
+                
+                // Black Clock Hands
+                const hand1 = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.12, 0.06), new THREE.MeshBasicMaterial({color: 0x000000}));
+                hand1.position.set(0, 0, -0.02);
+                group.add(hand1);
+                const hand2 = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.01), new THREE.MeshBasicMaterial({color: 0x000000}));
+                hand2.position.set(0.02, 0, 0);
+                group.add(hand2);
+            }
 
             return group;
         }
 
-        const handContainer = new THREE.Group();
-        // Base visuals
-        const redHandGroup = createHandGroup(0xff0000); handContainer.add(redHandGroup);
-        const pressureHandGroup = createHandGroup(0x0044ff); handContainer.add(pressureHandGroup);
-        const conductiveHandGroup = createHandGroup(0xffcc00); handContainer.add(conductiveHandGroup);
+        // LEFT HAND (Permanent Blue)
+        const leftHandGroup = createActualHand(0x0000ff, true, false);
+        leftHandGroup.position.set(-0.5, -0.4, -0.8);
+        camera.add(leftHandGroup);
 
-        // Hide others initially
-        pressureHandGroup.visible = false;
-        conductiveHandGroup.visible = false;
+        // RIGHT HANDS (Switchable)
+        const rightHandContainer = new THREE.Group();
+        const redHand = createActualHand(0xff0000, false, false); rightHandContainer.add(redHand);
+        const silverPressureHand = createActualHand(0xc0c0c0, false, true); rightHandContainer.add(silverPressureHand);
+        const conductiveHand = createActualHand(0xffcc00, false, false); rightHandContainer.add(conductiveHand);
+        const purpleHand = createActualHand(0x800080, false, false); rightHandContainer.add(purpleHand);
 
-        handContainer.position.set(0.6, -0.6, -0.8);
-        camera.add(handContainer);
+        silverPressureHand.visible = conductiveHand.visible = purpleHand.visible = false;
+        rightHandContainer.position.set(0.5, -0.4, -0.8);
+        camera.add(rightHandContainer);
         scene.add(camera);
 
+        // Hand Switching Logic
         document.addEventListener('keydown', (e) => {
-            redHandGroup.visible = pressureHandGroup.visible = conductiveHandGroup.visible = false;
-            if (e.code === 'Digit1') { currentHand = 'Red'; redHandGroup.visible = true; handStatusUI.innerText = "Current: RED (Pull)"; handStatusUI.style.color = "#ff4444"; }
-            else if (e.code === 'Digit2') { currentHand = 'Pressure'; pressureHandGroup.visible = true; handStatusUI.innerText = "Current: PRESSURE (Explosion)"; handStatusUI.style.color = "#4488ff"; }
-            else if (e.code === 'Digit3') { currentHand = 'Conductive'; conductiveHandGroup.visible = true; handStatusUI.innerText = "Current: CONDUCTIVE (Gate)"; handStatusUI.style.color = "#ffcc00"; }
+            if (['Digit1', 'Digit2', 'Digit3', 'Digit4'].includes(e.code)) {
+                redHand.visible = silverPressureHand.visible = conductiveHand.visible = purpleHand.visible = false;
+                
+                if (e.code === 'Digit1') { currentHand = 'Red'; redHand.visible = true; handStatusUI.innerHTML = "Right Hand: RED<br>Power: Grapple"; handStatusUI.style.color = "#ff4444"; }
+                else if (e.code === 'Digit2') { currentHand = 'Pressure'; silverPressureHand.visible = true; handStatusUI.innerHTML = "Right Hand: SILVER PRESSURE<br>Power: Glass Breaker"; handStatusUI.style.color = "#c0c0c0"; }
+                else if (e.code === 'Digit3') { currentHand = 'Conductive'; conductiveHand.visible = true; handStatusUI.innerHTML = "Right Hand: CONDUCTIVE<br>Power: Gate Power"; handStatusUI.style.color = "#ffcc00"; }
+                else if (e.code === 'Digit4') { currentHand = 'Purple'; purpleHand.visible = true; handStatusUI.innerHTML = "Right Hand: PURPLE<br>Power: Jump Pad Slam"; handStatusUI.style.color = "#cc44ff"; }
+            }
         });
 
-        // --- 6. SHOOTING INTERACTION (Smarter Raycasting & New Hand Logic) ---
+        // --- 6. SHOOTING & NEW PURPLE MECHANIC ---
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(0, 0);
         
         document.addEventListener('mousedown', (e) => {
             if (!controls.isLocked || e.button !== 0) return; 
 
-            // Punch animation
-            handContainer.position.z = -1.4;
-            setTimeout(() => { handContainer.position.z = -0.8; }, 120);
+            // Long Stretch Animation
+            rightHandContainer.position.z = -3.0; // Stretches WAY out
+            setTimeout(() => { rightHandContainer.position.z = -0.8; }, 150);
 
-            raycaster.setFromCamera(mouse, camera);
-            const checkObjects = [...glassBlocks, ...grapplePoints, gateObjects[0].receptor];
+            raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+            const checkObjects = [...glassBlocks, ...grapplePoints, gateObjects[0].receptor, ...jumpPads];
             const intersects = raycaster.intersectObjects(checkObjects);
 
             if (intersects.length > 0) {
                 const hit = intersects[0];
-                const distance = hit.distance;
                 const hitObject = hit.object;
 
-                // --- CONDUCTIVE HAND MECHANIC (Gate) ---
-                if (currentHand === 'Conductive' && hitObject === gateObjects[0].receptor && distance < 12) {
+                // Purple Hand: Jump Pad Launch
+                if (currentHand === 'Purple' && hitObject.userData.isJumpPad && hit.distance < 40) {
+                    hitObject.material.emissive.setHex(0xff00ff); // Flash pad
+                    setTimeout(() => hitObject.material.emissive.setHex(0x330033), 300);
+                    velocity.y = 120; // HUGE LAUNCH
+                    canJump = false;
+                }
+                // Conductive Hand: Gate
+                else if (currentHand === 'Conductive' && hitObject === gateObjects[0].receptor && hit.distance < 20) {
                     if (!gateObjects[0].isOpen) {
-                        gateObjects[0].receptor.material.emissive.setHex(0xaaaa00); // FIX: Charge gate
-                        gateObjects[0].receptor.material.color.setHex(0xffff00);
-                        setTimeout(() => gateObjects[0].isOpen = true, 500); // Gate starts opening
+                        gateObjects[0].receptor.material.emissive.setHex(0xaaaa00); 
+                        setTimeout(() => gateObjects[0].isOpen = true, 500); 
                     }
                 }
-
-                // --- RED HAND MECHANIC (Grapple Pull) ---
-                else if (currentHand === 'Red' && hitObject.userData.isGrapplePoint && distance < 40) {
-                    isGrappling = true; // FIX: Initiate pull
+                // Red Hand: Grapple
+                else if (currentHand === 'Red' && hitObject.userData.isGrapplePoint && hit.distance < 100) {
+                    isGrappling = true; 
                     grappleTargetPos.copy(hitObject.position);
-                    hitObject.material.emissive.setHex(0x00cc00); // Visual lock
+                    hitObject.material.emissive.setHex(0x00cc00); 
                 }
-
-                // --- PRESSURE HAND MECHANIC (Exploding Particles) ---
-                else if (currentHand === 'Pressure' && hitObject.userData.isGlass && distance < 12) {
-                    // FIX: Create particles at hit point
+                // Silver Pressure Hand: Explode Glass
+                else if (currentHand === 'Pressure' && hitObject.userData.isGlass && hit.distance < 25) {
                     spawnGlassParticles(hit.point, hitObject.material.color.clone());
-                    
                     scene.remove(hitObject);
                     glassBlocks.splice(glassBlocks.indexOf(hitObject), 1);
                 }
             }
         });
 
-        // FIX: Glass Particle Physics System
         function spawnGlassParticles(hitPos, color) {
-            const particleCount = 20;
-            const particleGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-            const particleMat = new THREE.MeshStandardMaterial({ color: color, transparent: true, opacity: 0.8, roughness: 0.1 });
-            for (let i = 0; i < particleCount; i++) {
-                const p = new THREE.Mesh(particleGeo, particleMat.clone());
+            for (let i = 0; i < 25; i++) {
+                const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: color, transparent: true, opacity: 0.8 }));
                 p.position.copy(hitPos);
-                
-                // Random explosion velocity
-                p.userData.vel = new THREE.Vector3(
-                    (Math.random() - 0.5) * 20,
-                    Math.random() * 10 + 5,
-                    (Math.random() - 0.5) * 20
-                );
-                p.userData.life = 3.0; // Seconds to live
+                p.userData = { 
+                    vel: new THREE.Vector3((Math.random()-0.5)*30, Math.random()*15+5, (Math.random()-0.5)*30), 
+                    life: 3.0 
+                };
                 scene.add(p);
                 activeGlassParticles.push(p);
             }
         }
 
-        // --- 7. MAIN GAME LOOP (Fixed Physics) ---
+        // --- 7. MAIN GAME LOOP ---
         let prevTime = performance.now();
 
         function animate() {
@@ -316,30 +345,20 @@
             if (controls.isLocked) {
                 const delta = (time - prevTime) / 1000;
 
-                // FIX: Apply Grappling Pull Physics vs Standard Movement
                 if (isGrappling) {
-                    // Normal friction applied normally, but we override standard input forces
-                    velocity.x -= velocity.x * 10.0 * delta;
-                    velocity.z -= velocity.z * 10.0 * delta;
+                    velocity.x -= velocity.x * 5.0 * delta;
+                    velocity.z -= velocity.z * 5.0 * delta;
+                    const grappleDir = grappleTargetPos.clone().sub(controls.getObject().position).normalize();
+                    velocity.add(grappleDir.multiplyScalar(pullSpeed * delta * 8));
+                    velocity.y -= 9.8 * 2.0 * delta; // Low gravity while pulling
                     
-                    const playerPos = controls.getObject().position;
-                    // Vector toward target
-                    const grappleDir = grappleTargetPos.clone().sub(playerPos).normalize();
-                    // Apply smooth pull force
-                    velocity.add(grappleDir.multiplyScalar(pullSpeed * delta * 6));
-                    // Gravity reduced slightly during pull for cool feel
-                    velocity.y -= 9.8 * 5.0 * delta; 
-
-                    // Check proximity to stop grapple
-                    if (playerPos.distanceTo(grappleTargetPos) < 2.5) {
+                    if (controls.getObject().position.distanceTo(grappleTargetPos) < 3) {
                         isGrappling = false;
-                        velocity.multiplyScalar(0.2); // Add significant drag upon stopping
                     }
                 } else {
-                    // Standard Physics
                     velocity.x -= velocity.x * 10.0 * delta;
                     velocity.z -= velocity.z * 10.0 * delta;
-                    velocity.y -= 9.8 * 10.0 * delta; // Gravity
+                    velocity.y -= 9.8 * 12.0 * delta; // Gravity
 
                     direction.z = Number(moveForward) - Number(moveBackward);
                     direction.x = Number(moveRight) - Number(moveLeft);
@@ -358,37 +377,29 @@
                     velocity.y = 0;
                     controls.getObject().position.y = 2;
                     canJump = true;
-                    if(isGrappling) isGrappling = false; // Emergency stop if pull drags player into floor
+                    if(isGrappling) isGrappling = false;
                 }
 
-                // FIX: Update Gate Animation (Move sliding door up)
+                // Gate Animation
                 const gate = gateObjects[0];
                 if (gate.isOpen && gate.door.position.y < gate.yTarget) {
-                    gate.door.position.y += 4 * delta; // Smooth opening speed
+                    gate.door.position.y += 5 * delta;
                 }
 
-                // FIX: Update Glass Particles (Physics, Bouncing, Fading)
+                // Particles
                 for (let i = activeGlassParticles.length - 1; i >= 0; i--) {
                     const p = activeGlassParticles[i];
-                    p.userData.vel.y -= 9.8 * delta * 2; // Particle gravity
+                    p.userData.vel.y -= 9.8 * delta * 3; 
                     p.position.add(p.userData.vel.clone().multiplyScalar(delta));
                     p.userData.life -= delta;
-
-                    // Floor Bounce
-                    if (p.position.y < 0.1) {
-                        p.position.y = 0.1;
-                        p.userData.vel.y *= -0.4; // Lose energy
-                        p.userData.vel.x *= 0.8;
-                        p.userData.vel.z *= 0.8;
+                    if (p.position.y < 0.2) {
+                        p.position.y = 0.2;
+                        p.userData.vel.y *= -0.4; 
+                        p.userData.vel.x *= 0.8; p.userData.vel.z *= 0.8;
                     }
-
-                    // Fade out near end of life
                     p.material.opacity = Math.max(0, p.userData.life);
-
                     if (p.userData.life <= 0) {
                         scene.remove(p);
-                        p.geometry.dispose();
-                        p.material.dispose();
                         activeGlassParticles.splice(i, 1);
                     }
                 }
@@ -399,7 +410,6 @@
 
         animate();
 
-        // Handle Window Resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
